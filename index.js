@@ -15,11 +15,13 @@ const app = express();
 const port = process.env.PORT || 8000;
 
 // Middleware
-app.use(cors({
-  origin: "*",
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE"],
-}));
+app.use(
+  cors({
+    origin: "*",
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+  }),
+);
 app.use(express.json());
 app.use(cookieParser());
 
@@ -42,7 +44,6 @@ app.use("/api/v1/admin", adminRoute);
 app.use("/api/v1/students", studentRoute);
 app.use("/api/v1/attendance", attendanceRoute);
 app.use("/api/v1/classes", classRoute);
-
 
 // Connect to DB
 connectDB();
