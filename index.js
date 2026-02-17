@@ -44,8 +44,12 @@ app.use("/api/v1/attendance", attendanceRoute);
 app.use("/api/v1/classes", classRoute);
 
 
+// Connect to DB
+connectDB();
+
 // Start server
 app.listen(port, () => {
-  connectDB();
   console.log("Server is running on port", port);
 });
+
+export default app;
