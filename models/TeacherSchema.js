@@ -28,12 +28,11 @@ const teacherSchema = new mongoose.Schema(
       type: Number,
       required: false,
     },
-    assignedClasses: [
+    assignedClasses:
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "class",
       },
-    ],
   },
   { timestamps: true }
 );

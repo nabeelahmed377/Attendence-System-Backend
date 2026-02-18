@@ -244,6 +244,31 @@ export const getAllTeachers = async (req, res) => {
   }
 };
 
+// Update teacher
+export const updateTeacher = async (req, res) => {
+  try {
+    const { teacherId } = req.params;
+    const { name, email, contact, classId, gender } = req.body;
+
+    const teacher = await UserModel.findByIdAndUpdate(
+      teacherId,
+      { name, email, contact, gender, classId },
+      { new: true }
+    ).select("-password");
+
+    if (!teacher) {
+      return res.status(404).json({ message: "Teacher not found" });
+    }
+
+    res.status(200).json({
+      message: "Teacher updated successfully",
+      teacher,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // Delete teacher
 export const deleteTeacher = async (req, res) => {
   try {

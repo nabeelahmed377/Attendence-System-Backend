@@ -9,6 +9,7 @@ import {
   updateStudent,
   deleteStudent,
   getAllTeachers,
+  updateTeacher,
   deleteTeacher,
   getAttendanceSummary,
 } from "../controllers/AdminController.js";
@@ -33,6 +34,7 @@ router.delete("/student/:studentId", deleteStudent);
 
 // Teacher routes
 router.get("/teachers", getAllTeachers);
+router.patch("/teacher/:teacherId", updateTeacher);
 router.delete("/teacher/:teacherId", deleteTeacher);
 
 // Attendance reports
