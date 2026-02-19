@@ -4,6 +4,7 @@ import {
   getAllClasses,
   assignTeacherToClass,
   createStudent,
+  bulkCreateStudents,
   getAllStudents,
   getStudentById,
   updateStudent,
@@ -27,6 +28,7 @@ router.patch("/class/:classId/assign-teacher", assignTeacherToClass);
 
 // Student routes
 router.post("/student", createStudent);
+router.post("/students/bulk", bulkCreateStudents);
 router.get("/students", getAllStudents);
 router.get("/student/:studentId", getStudentById);
 router.patch("/student/:studentId", updateStudent);

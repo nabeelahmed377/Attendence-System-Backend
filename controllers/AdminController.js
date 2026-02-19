@@ -225,6 +225,79 @@ export const deleteStudent = async (req, res) => {
   }
 };
 
+// Bulk create students from Excel import
+export const bulkCreateStudents = async (req, res) => {
+  try {
+    const { students } = req.body;
+
+    if (!Array.isArray(students) || students.length === 0) {
+      return res.status(400).json({ message: "No student data provided" });
+    }
+
+    const success = [];
+    const failed = [];
+
+    for (const student of students) {
+      try {
+        const { rollNo, name, fatherName, contact, gender, age } = student;
+        const studentClassId = student.classId;
+
+        if (!rollNo || !name || !fatherName || !studentClassId || !gender) {
+          const missing = [];
+          if (!rollNo) missing.push("rollNo");
+          if (!name) missing.push("name");
+          if (!fatherName) missing.push("fatherName");
+          if (!studentClassId) missing.push("classId");
+          if (!gender) missing.push("gender");
+          failed.push({ rollNo: rollNo || "?", reason: `Missing fields: ${missing.join(", ")}` });
+          continue;
+        }
+
+        // Find class by ID
+        const classData = await ClassModel.findById(studentClassId);
+        if (!classData) {
+          failed.push({ rollNo, reason: `Class not found` });
+          continue;
+        }
+
+        // Check duplicate roll number
+        const existing = await StudentModel.findOne({ rollNo: String(rollNo) });
+        if (existing) {
+          failed.push({ rollNo, reason: "Roll number already exists" });
+          continue;
+        }
+
+        const newStudent = new StudentModel({
+          rollNo: String(rollNo),
+          name,
+          fatherName,
+          class: classData._id,
+          contact: contact || undefined,
+          gender: String(gender).toLowerCase(),
+          age: age || undefined,
+        });
+
+        await newStudent.save();
+        await ClassModel.findByIdAndUpdate(classData._id, {
+          $push: { students: newStudent._id },
+        });
+
+        success.push(rollNo);
+      } catch (err) {
+        failed.push({ rollNo: student.rollNo || "?", reason: err.message });
+      }
+    }
+
+    res.status(200).json({
+      message: `Import complete. ${success.length} added, ${failed.length} failed.`,
+      success,
+      failed,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // ============ TEACHER MANAGEMENT ============
 
 // Get all teachers
