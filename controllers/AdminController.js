@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import UserModel from "../models/UserSchema.js";
 import ClassModel from "../models/ClassSchema.js";
 import StudentModel from "../models/StudentSchema.js";
@@ -178,23 +179,86 @@ export const getStudentById = async (req, res) => {
 
 // Update student
 export const updateStudent = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const { studentId } = req.params;
-    const updates = req.body;
+    const { rollNo, name, fatherName, classId, contact, gender, age } = req.body;
 
-    const student = await StudentModel.findByIdAndUpdate(studentId, updates, {
-      new: true,
-    });
-
+    const student = await StudentModel.findById(studentId).session(session);
     if (!student) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(404).json({ message: "Student not found" });
     }
+
+    // If roll number is being changed, check for duplicates
+    if (rollNo && rollNo !== student.rollNo) {
+      const existing = await StudentModel.findOne({ rollNo }).session(session);
+      if (existing) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({ message: "Roll number already exists" });
+      }
+      student.rollNo = rollNo;
+    }
+
+    // If class is being changed, update rosters and all attendance records
+    if (classId && classId !== student.class.toString()) {
+      const newClass = await ClassModel.findById(classId).session(session);
+      if (!newClass) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(404).json({ message: "New class not found" });
+      }
+
+      const oldClassId = student.class;
+
+      // 1. Update student's class reference
+      student.class = classId;
+
+      // 2. Remove student from old class's students array
+      await ClassModel.findByIdAndUpdate(
+        oldClassId,
+        { $pull: { students: studentId } },
+        { session }
+      );
+
+      // 3. Add student to new class's students array (guard against duplicates)
+      await ClassModel.findByIdAndUpdate(
+        classId,
+        { $addToSet: { students: studentId } },
+        { session }
+      );
+
+      // 4. Update all attendance records of this student to the new classId
+      await AttendenceModel.updateMany(
+        { studentId },
+        { $set: { classId } },
+        { session }
+      );
+    }
+
+    // Update remaining fields
+    if (name) student.name = name;
+    if (fatherName) student.fatherName = fatherName;
+    if (contact) student.contact = contact;
+    if (gender) student.gender = gender;
+    if (age) student.age = age;
+
+    await student.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
 
     res.status(200).json({
       message: "Student updated successfully",
       student,
     });
   } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
     res.status(500).json({ message: error.message });
   }
 };
